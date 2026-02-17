@@ -1,0 +1,170 @@
+// CommonPlace Database Schema
+// Voice memo capture and organization app
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password  String?    // For credentials auth
+  image     String?
+  folders   Folder[]
+  notes     Note[]
+  longNotes LongNote[]
+  settings  Settings?
+  accounts  Account[]
+  sessions  Session[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// App models
+model Folder {
+  id           String     @id @default(cuid())
+  name         String
+  type         FolderType @default(FRAGMENTS)
+  instructions String?    @db.Text // Folder-specific LLM instructions
+  parentId     String?    // null = top-level folder
+  parent       Folder?    @relation("FolderChildren", fields: [parentId], references: [id])
+  children     Folder[]   @relation("FolderChildren")
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes        Note[]
+  longNotes    LongNote[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([parentId])
+}
+
+enum FolderType {
+  FRAGMENTS
+  LONG
+}
+
+model Note {
+  id               String         @id @default(cuid())
+  originalText     String         @db.Text
+  cleanedMemo      String?        @db.Text
+  title            String?
+  summary          String?        @db.Text
+  tags             String[]
+  actionRequired   Boolean        @default(false)
+  locationRelevant Boolean        @default(false)
+  latitude         Float?
+  longitude        Float?
+  placeName        String?
+  audioUrl         String?
+  imageUrls        String[]
+  folderId         String
+  folder           Folder         @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calendarEvent    CalendarEvent?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([folderId])
+}
+
+model LongNote {
+  id        String          @id @default(cuid())
+  title     String
+  folderId  String
+  folder    Folder          @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   LongNoteEntry[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([folderId])
+}
+
+model LongNoteEntry {
+  id           String   @id @default(cuid())
+  originalText String   @db.Text
+  cleanedMemo  String?  @db.Text
+  summary      String?  @db.Text
+  longNoteId   String
+  longNote     LongNote @relation(fields: [longNoteId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([longNoteId])
+}
+
+model CalendarEvent {
+  id       String   @id @default(cuid())
+  title    String
+  date     DateTime
+  duration Int?     // minutes
+  location String?
+  notes    String?  @db.Text
+  isAllDay Boolean  @default(false)
+  noteId   String   @unique
+  note     Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+}
+
+model Settings {
+  id                    String  @id @default(cuid())
+  customLLMInstructions String? @db.Text
+  userId                String  @unique
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Cache for API responses
+model ApiCache {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
