@@ -25,6 +25,17 @@ export async function PATCH(
     const body = await request.json();
     const { folderId, title, cleanedMemo, summary, tags } = body;
 
+    // Verify target folder belongs to the current user
+    if (folderId !== undefined) {
+      const targetFolder = await db.folder.findUnique({
+        where: { id: folderId },
+        select: { userId: true },
+      });
+      if (!targetFolder || targetFolder.userId !== user.id) {
+        return NextResponse.json({ error: "Target folder not found" }, { status: 404 });
+      }
+    }
+
     const updated = await db.note.update({
       where: { id: noteId },
       data: {

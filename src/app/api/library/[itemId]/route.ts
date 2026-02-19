@@ -18,14 +18,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trackerItem = (db as { trackerItem?: typeof db.note }).trackerItem;
-    if (!trackerItem) {
-      return NextResponse.json(
-        { error: "Library not initialized. Run Prisma migrations." },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const data: Record<string, unknown> = {};
 
@@ -100,7 +92,7 @@ export async function PATCH(
       data.status = "COMPLETED";
     }
 
-    const existing = await trackerItem.findFirst({
+    const existing = await db.trackerItem.findFirst({
       where: { id: itemId, userId: user.id },
     });
 
@@ -108,7 +100,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const item = await trackerItem.update({
+    const item = await db.trackerItem.update({
       where: { id: itemId },
       data,
     });
@@ -135,15 +127,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trackerItem = (db as { trackerItem?: typeof db.note }).trackerItem;
-    if (!trackerItem) {
-      return NextResponse.json(
-        { error: "Library not initialized. Run Prisma migrations." },
-        { status: 500 }
-      );
-    }
-
-    const existing = await trackerItem.findFirst({
+    const existing = await db.trackerItem.findFirst({
       where: { id: itemId, userId: user.id },
     });
 
@@ -151,7 +135,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await trackerItem.delete({
+    await db.trackerItem.delete({
       where: { id: itemId },
     });
 

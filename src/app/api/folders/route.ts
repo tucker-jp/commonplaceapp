@@ -48,6 +48,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof name === "string" && name.length > 100) {
+      return NextResponse.json(
+        { error: "Folder name exceeds maximum length (100 characters)" },
+        { status: 400 }
+      );
+    }
+
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

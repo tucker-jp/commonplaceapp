@@ -65,7 +65,7 @@ export default function LibraryPage() {
 
   const handleEnterToNext = (
     event: React.KeyboardEvent,
-    nextRef: React.RefObject<HTMLElement>
+    nextRef: React.RefObject<HTMLElement | null>
   ) => {
     if (
       event.key !== "Enter" ||

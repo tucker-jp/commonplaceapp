@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       console.error("ask keyword extraction failed:", error);
     }
 
-    const orFilters = keywords.flatMap((keyword) => [
+    const orFilters: Record<string, unknown>[] = keywords.flatMap((keyword) => [
       { title: { contains: keyword, mode: "insensitive" } },
       { summary: { contains: keyword, mode: "insensitive" } },
       { cleanedMemo: { contains: keyword, mode: "insensitive" } },

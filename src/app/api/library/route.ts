@@ -41,14 +41,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trackerItem = (db as { trackerItem?: typeof db.note }).trackerItem;
-    if (!trackerItem) {
-      return NextResponse.json(
-        { error: "Library not initialized. Run Prisma migrations." },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type")?.toUpperCase() as TrackerType | null;
     const status = searchParams.get("status")?.toUpperCase();
@@ -86,7 +78,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const items = await trackerItem.findMany({
+    const items = await db.trackerItem.findMany({
       where,
       orderBy: [{ finishedAt: "desc" }, { createdAt: "desc" }],
     });
@@ -109,14 +101,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trackerItem = (db as { trackerItem?: typeof db.note }).trackerItem;
-    if (!trackerItem) {
-      return NextResponse.json(
-        { error: "Library not initialized. Run Prisma migrations." },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const title = typeof body?.title === "string" ? body.title.trim() : "";
     const type = typeof body?.type === "string" ? body.type.toUpperCase() : "";
@@ -136,6 +120,12 @@ export async function POST(request: NextRequest) {
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
+    if (title.length > 500) {
+      return NextResponse.json(
+        { error: "Title exceeds maximum length (500 characters)" },
+        { status: 400 }
+      );
+    }
     if (!trackerTypes.includes(type as TrackerType)) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
@@ -145,7 +135,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid title" }, { status: 400 });
     }
 
-    const existing = await trackerItem.findUnique({
+    const existing = await db.trackerItem.findUnique({
       where: {
         userId_type_titleNormalized: {
           userId: user.id,
@@ -172,7 +162,7 @@ export async function POST(request: NextRequest) {
       status = "COMPLETED";
     }
 
-    const item = await trackerItem.create({
+    const item = await db.trackerItem.create({
       data: {
         userId: user.id,
         type: type as TrackerType,
@@ -194,7 +184,7 @@ export async function POST(request: NextRequest) {
       try {
         const creator = await guessCreator(type as TrackerType, title);
         if (creator) {
-          finalItem = await trackerItem.update({
+          finalItem = await db.trackerItem.update({
             where: { id: item.id },
             data: { creator },
           });

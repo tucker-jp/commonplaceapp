@@ -65,6 +65,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof originalText === "string" && originalText.length > 50_000) {
+      return NextResponse.json(
+        { error: "Text exceeds maximum length (50,000 characters)" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof title === "string" && title.length > 500) {
+      return NextResponse.json(
+        { error: "Title exceeds maximum length (500 characters)" },
+        { status: 400 }
+      );
+    }
+
     if (!folderId) {
       return NextResponse.json(
         { error: "Folder ID is required" },

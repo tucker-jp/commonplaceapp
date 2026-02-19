@@ -25,6 +25,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof text !== "string" || text.length > 50_000) {
+      return NextResponse.json(
+        { error: "Text exceeds maximum length (50,000 characters)" },
+        { status: 400 }
+      );
+    }
+
     // Fetch folders and settings from DB (never trust client data for instructions)
     const [folders, settings] = await Promise.all([
       db.folder.findMany({
@@ -111,51 +118,46 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      const trackerItem = (db as { trackerItem?: typeof db.note }).trackerItem;
-      if (!trackerItem) {
-        recommendations.error = "Recommendations not available until migrations run.";
-      } else {
-        const candidates = extractRecommendationCandidates(text);
+      const candidates = extractRecommendationCandidates(text);
 
-        if (candidates.length > 0) {
-          for (const candidate of candidates) {
-            const titleNormalized = normalizeTitle(candidate.title);
-            if (!titleNormalized) {
-              recommendations.skipped += 1;
-              continue;
-            }
+      if (candidates.length > 0) {
+        for (const candidate of candidates) {
+          const titleNormalized = normalizeTitle(candidate.title);
+          if (!titleNormalized) {
+            recommendations.skipped += 1;
+            continue;
+          }
 
-            const existing = await trackerItem.findUnique({
-              where: {
-                userId_type_titleNormalized: {
-                  userId: user.id,
-                  type: candidate.type as TrackerType,
-                  titleNormalized,
-                },
-              },
-            });
-
-            if (existing) {
-              recommendations.skipped += 1;
-              continue;
-            }
-
-            await trackerItem.create({
-              data: {
+          const existing = await db.trackerItem.findUnique({
+            where: {
+              userId_type_titleNormalized: {
                 userId: user.id,
                 type: candidate.type as TrackerType,
-                status: "PLANNED",
-                title: candidate.title,
                 titleNormalized,
-                tags: [],
-                source: "NOTE_AUTO",
-                isRecommendation: true,
-                sourceNoteId: note.id,
               },
-            });
+            },
+          });
 
-            recommendations.created += 1;
+          if (existing) {
+            recommendations.skipped += 1;
+            continue;
           }
+
+          await db.trackerItem.create({
+            data: {
+              userId: user.id,
+              type: candidate.type as TrackerType,
+              status: "PLANNED",
+              title: candidate.title,
+              titleNormalized,
+              tags: [],
+              source: "NOTE_AUTO",
+              isRecommendation: true,
+              sourceNoteId: note.id,
+            },
+          });
+
+          recommendations.created += 1;
         }
       }
     } catch (error) {

@@ -26,6 +26,10 @@
 - [ ] Add rate limiting to API routes
 - [ ] Implement proper error boundaries
 - [ ] Add Library source-note link and recommendation badge
+- [ ] Custom `error.tsx` and `not-found.tsx` pages
+- [ ] Pagination on note queries
+- [ ] Middleware-based centralized auth
+- [ ] NextAuth v5 upgrade
 
 ## Tech Debt
 - [ ] Add unit tests for services (analysis, transcription)
@@ -49,5 +53,11 @@
 - [x] Library tracker (`/library`) + `/api/library` CRUD for books, movies, music
 - [x] Recommendations auto-add from notes with safe error handling
 - [x] Library table view below the add form
+- [x] Fix build blocker: remove incorrect `db` type cast for `trackerItem` in analyze + library routes
+- [x] Fix pre-existing TS errors in `ask/route.ts` and `library/page.tsx`
+- [x] Security: add folder ownership check on note move (`notes/[noteId]` PATCH)
+- [x] Security: add response headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
+- [x] Security: add input length validation on POST handlers (analyze, notes, folders, library)
+- [x] Deployment: add `postinstall` script for Prisma generate on Vercel
 
-Last updated: 2026-02-17
+Last updated: 2026-02-19
