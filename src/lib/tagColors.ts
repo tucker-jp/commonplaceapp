@@ -1,13 +1,13 @@
 // Deterministic tag color based on tag name — consistent across renders
 const TAG_COLOR_CLASSES = [
-  "bg-orange-100 text-orange-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-blue-100 text-blue-700",
-  "bg-violet-100 text-violet-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-600",
-  "bg-teal-100 text-teal-700",
-  "bg-indigo-100 text-indigo-700",
+  "bg-amber-100 text-amber-800",
+  "bg-emerald-100 text-emerald-800",
+  "bg-sky-100 text-sky-800",
+  "bg-rose-100 text-rose-700",
+  "bg-teal-100 text-teal-800",
+  "bg-lime-100 text-lime-800",
+  "bg-slate-100 text-slate-700",
+  "bg-yellow-100 text-yellow-800",
 ] as const;
 
 export function getTagColor(tag: string): string {

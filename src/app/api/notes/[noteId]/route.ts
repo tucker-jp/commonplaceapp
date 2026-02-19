@@ -23,7 +23,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { folderId, title, cleanedMemo, tags } = body;
+    const { folderId, title, cleanedMemo, summary, tags } = body;
 
     const updated = await db.note.update({
       where: { id: noteId },
@@ -31,6 +31,7 @@ export async function PATCH(
         ...(folderId !== undefined ? { folderId } : {}),
         ...(title !== undefined ? { title } : {}),
         ...(cleanedMemo !== undefined ? { cleanedMemo } : {}),
+        ...(summary !== undefined ? { summary } : {}),
         ...(tags !== undefined ? { tags } : {}),
       },
       include: {

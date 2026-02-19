@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeAndCategorize } from "@/services/analysis";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  extractRecommendationCandidates,
+  normalizeTitle,
+  TrackerType,
+} from "@/lib/recommendations";
 
 export async function POST(request: NextRequest) {
   try {
@@ -99,7 +104,66 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ note, folderName });
+    let recommendations = {
+      created: 0,
+      skipped: 0,
+      error: null as string | null,
+    };
+
+    try {
+      const trackerItem = (db as { trackerItem?: typeof db.note }).trackerItem;
+      if (!trackerItem) {
+        recommendations.error = "Recommendations not available until migrations run.";
+      } else {
+        const candidates = extractRecommendationCandidates(text);
+
+        if (candidates.length > 0) {
+          for (const candidate of candidates) {
+            const titleNormalized = normalizeTitle(candidate.title);
+            if (!titleNormalized) {
+              recommendations.skipped += 1;
+              continue;
+            }
+
+            const existing = await trackerItem.findUnique({
+              where: {
+                userId_type_titleNormalized: {
+                  userId: user.id,
+                  type: candidate.type as TrackerType,
+                  titleNormalized,
+                },
+              },
+            });
+
+            if (existing) {
+              recommendations.skipped += 1;
+              continue;
+            }
+
+            await trackerItem.create({
+              data: {
+                userId: user.id,
+                type: candidate.type as TrackerType,
+                status: "PLANNED",
+                title: candidate.title,
+                titleNormalized,
+                tags: [],
+                source: "NOTE_AUTO",
+                isRecommendation: true,
+                sourceNoteId: note.id,
+              },
+            });
+
+            recommendations.created += 1;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Recommendation extraction failed:", error);
+      recommendations.error = "Recommendations could not be saved.";
+    }
+
+    return NextResponse.json({ note, folderName, recommendations });
   } catch (error) {
     console.error("Analysis API error:", error);
     return NextResponse.json(

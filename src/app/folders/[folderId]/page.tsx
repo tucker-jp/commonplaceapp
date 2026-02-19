@@ -49,6 +49,7 @@ export default function FolderDetailPage() {
   const [editOriginal, setEditOriginal] = useState("");
   const [editSummary, setEditSummary] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
+  const [tagSearch, setTagSearch] = useState("");
   const [moveFolderId, setMoveFolderId] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isDeletingNoteId, setIsDeletingNoteId] = useState<string | null>(null);
@@ -67,6 +68,21 @@ export default function FolderDetailPage() {
   const [folderFormValue, setFolderFormValue] = useState("");
   const [isSavingFolder, setIsSavingFolder] = useState(false);
   const [folderError, setFolderError] = useState<string | null>(null);
+
+  const isTypingTarget = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return false;
+    return (
+      target.isContentEditable ||
+      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)
+    );
+  };
+
+  const closeAllModals = () => {
+    setShowBatchMoveModal(false);
+    setDeleteNoteId(null);
+    setFolderModal(null);
+    setBatchTargetFolderId("");
+  };
 
   useEffect(() => {
     async function load() {
@@ -96,6 +112,20 @@ export default function FolderDetailPage() {
     load();
   }, [folderId]);
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (!showBatchMoveModal && !deleteNoteId && !folderModal) return;
+      if (isTypingTarget(e.target)) return;
+
+      e.preventDefault();
+      closeAllModals();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showBatchMoveModal, deleteNoteId, folderModal]);
+
   // --- Note actions ---
 
   function startEdit(note: Note) {
@@ -105,12 +135,14 @@ export default function FolderDetailPage() {
     setEditOriginal(note.originalText ?? "");
     setEditSummary(note.summary ?? "");
     setEditTags(note.tags);
+    setTagSearch("");
     setMoveFolderId("");
     setNoteError(null);
   }
 
   function cancelEdit() {
     setEditingNoteId(null);
+    setTagSearch("");
     setNoteError(null);
   }
 
@@ -124,6 +156,7 @@ export default function FolderDetailPage() {
         body: JSON.stringify({
           title: editTitle,
           cleanedMemo: editMemo,
+          summary: editSummary,
           tags: editTags,
         }),
       });
@@ -328,7 +361,7 @@ export default function FolderDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin h-8 w-8 border-2 border-orange-600 border-t-transparent rounded-full" />
+        <div className="animate-spin h-8 w-8 border-2 border-[var(--accent)] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -338,27 +371,27 @@ export default function FolderDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           <Link
             href="/folders"
-            className="text-[#9a8478] hover:text-orange-500 transition-colors text-sm"
+            className="text-[var(--muted)] hover:text-[var(--accent)] transition-colors text-base flex-shrink-0"
           >
             ← Back
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-[#1c150d]">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-semibold text-[var(--foreground)] truncate">
               {folder ? folder.name : "Folder"}
             </h1>
-            <p className="text-sm text-[#9a8478]">
+            <p className="text-base text-[var(--muted)]">
               {notes.length} {notes.length === 1 ? "note" : "notes"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {/* Multi-select / batch move controls */}
           {notes.length > 0 && (
             <>
@@ -366,22 +399,22 @@ export default function FolderDetailPage() {
                 <>
                   <button
                     onClick={toggleSelectMode}
-                    className="px-3 py-1.5 text-sm text-[#3d2e22] bg-[#f0e8df] rounded-lg hover:bg-[#e8ddd3] transition-colors"
+                    className="px-4 py-2 text-base text-[var(--foreground)] bg-[var(--accent-soft)] rounded-xl hover:bg-[var(--border)] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => setShowBatchMoveModal(true)}
                     disabled={selectedIds.size === 0}
-                    className="px-3 py-1.5 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-40 transition-colors"
+                    className="px-4 py-2 text-base bg-[var(--accent)] text-white rounded-xl hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors"
                   >
-                    Move {selectedIds.size > 0 ? `${selectedIds.size} selected` : "selected"} ▸
+                    Move {selectedIds.size > 0 ? selectedIds.size : ""} ▸
                   </button>
                 </>
               ) : (
                 <button
                   onClick={toggleSelectMode}
-                  className="px-3 py-1.5 text-sm text-[#3d2e22] bg-[#f0e8df] rounded-lg hover:bg-[#e8ddd3] transition-colors"
+                  className="px-4 py-2 text-base text-[var(--foreground)] bg-[var(--accent-soft)] rounded-xl hover:bg-[var(--border)] transition-colors"
                 >
                   ☐ Move
                 </button>
@@ -393,25 +426,25 @@ export default function FolderDetailPage() {
           {folder && (
             <div className="relative">
               <details className="group">
-                <summary className="list-none cursor-pointer px-3 py-2 text-[#9a8478] hover:text-[#1c150d] hover:bg-[#f0e8df] rounded-lg transition-colors select-none text-sm">
+                <summary className="list-none cursor-pointer px-4 py-2.5 text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--accent-soft)] rounded-xl transition-colors select-none text-base">
                   ⋯ Actions
                 </summary>
-                <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl border border-[#e8ddd3] shadow-lg z-20 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-52 bg-[var(--card-strong)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-soft)] z-20 overflow-hidden">
                   <button
                     onClick={() => openFolderModal("rename")}
-                    className="w-full text-left px-4 py-2.5 text-sm text-[#3d2e22] hover:bg-[#faf6f0] transition-colors"
+                    className="w-full text-left px-5 py-3 text-base text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
                   >
                     Rename Folder
                   </button>
                   <button
                     onClick={() => openFolderModal("instructions")}
-                    className="w-full text-left px-4 py-2.5 text-sm text-[#3d2e22] hover:bg-[#faf6f0] transition-colors"
+                    className="w-full text-left px-5 py-3 text-base text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
                   >
                     Edit AI Instructions
                   </button>
                   <button
                     onClick={() => openFolderModal("delete")}
-                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full text-left px-5 py-3 text-base text-red-600 hover:bg-red-50 transition-colors"
                   >
                     Delete Folder
                   </button>
@@ -433,15 +466,15 @@ export default function FolderDetailPage() {
             return (
               <div
                 key={note.id}
-                className={`bg-white rounded-xl border overflow-hidden transition-all shadow-sm ${
+                className={`bg-[var(--card)] rounded-2xl border overflow-hidden transition-all shadow-[var(--shadow-soft)] ${
                   isSelected
-                    ? "border-orange-400 ring-2 ring-orange-400/40"
-                    : "border-[#e8ddd3] hover:shadow-md"
+                    ? "border-[var(--accent)] ring-2 ring-[var(--accent-ring)]"
+                    : "border-[var(--border)] hover:shadow-[var(--shadow-lift)]"
                 }`}
               >
                 {/* Card header */}
                 <button
-                  className="w-full text-left p-4 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors"
+                  className="w-full text-left p-5 hover:bg-[var(--background)] transition-colors"
                   onClick={() => {
                     if (isSelectMode) {
                       toggleSelect(note.id);
@@ -458,8 +491,8 @@ export default function FolderDetailPage() {
                       <div
                         className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                           isSelected
-                            ? "bg-orange-500 border-orange-500"
-                            : "border-gray-300 dark:border-gray-600"
+                            ? "bg-[var(--accent)] border-[var(--accent)]"
+                            : "border-[var(--border)]"
                         }`}
                       >
                         {isSelected && (
@@ -471,17 +504,17 @@ export default function FolderDetailPage() {
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <h2 className="font-semibold text-[#1c150d]">
+                        <h2 className="text-lg font-semibold text-[var(--foreground)]">
                           {note.title ?? "Untitled"}
                         </h2>
                         {!isSelectMode && (
-                          <span className="text-[#9a8478] flex-shrink-0 text-sm mt-0.5">
+                          <span className="text-[var(--muted)] flex-shrink-0 text-base mt-0.5">
                             {isEditing ? "▲" : "▼"}
                           </span>
                         )}
                       </div>
                       {note.summary && !isEditing && (
-                        <p className="mt-1 text-sm text-[#3d2e22] line-clamp-2">
+                        <p className="mt-1 text-base text-[var(--sidebar-ink)] line-clamp-2">
                           {note.summary}
                         </p>
                       )}
@@ -490,14 +523,14 @@ export default function FolderDetailPage() {
                           {note.tags.map((tag) => (
                             <span
                               key={tag}
-                              className={`px-2 py-0.5 text-xs rounded-md font-medium ${getTagColor(tag)}`}
+                              className={`px-2.5 py-1 text-sm rounded-md font-medium ${getTagColor(tag)}`}
                             >
                               {tag}
                             </span>
                           ))}
                         </div>
                       )}
-                      <p className="mt-2 text-xs text-[#9a8478]">
+                      <p className="mt-2 text-sm text-[var(--muted)]">
                         {new Date(note.createdAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -506,10 +539,10 @@ export default function FolderDetailPage() {
 
                 {/* Full detail / edit view — shown when isEditing and not in select mode */}
                 {isEditing && !isSelectMode && (
-                  <div className="border-t border-[#f0e8df] p-4 space-y-4">
+                  <div className="border-t border-[var(--border)] p-4 space-y-4">
                     {/* In-progress overlay banner */}
                     {isSavingNote && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg text-sm text-orange-700 dark:text-orange-300">
+                      <div className="flex items-center gap-2 px-4 py-3 bg-[var(--accent-soft)] border border-[var(--border)] rounded-xl text-base text-[var(--accent-strong)]">
                         <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -519,107 +552,135 @@ export default function FolderDetailPage() {
                     )}
 
                     {noteError && (
-                      <p className="text-sm text-red-500">{noteError}</p>
+                      <p className="text-base text-red-500">{noteError}</p>
                     )}
 
                     {/* 1. Title */}
                     <div>
-                      <label className="block text-xs font-medium uppercase tracking-wide text-[#9a8478] mb-1">
+                      <label className="block text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-1">
                         Title
                       </label>
                       <input
                         type="text"
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#e8ddd3] rounded-lg text-[#1c150d] placeholder-[#9a8478] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full px-4 py-3 text-base bg-[var(--card-strong)] border border-[var(--border)] rounded-xl text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent shadow-[var(--shadow-soft)]"
                       />
                     </div>
 
                     {/* 2. Original Memo — read-only */}
                     {editOriginal && (
                       <div>
-                        <label className="block text-xs font-medium uppercase tracking-wide text-[#9a8478] mb-1">
+                        <label className="block text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-1">
                           Original
                         </label>
                         <textarea
                           value={editOriginal}
                           readOnly
                           rows={4}
-                          className="w-full px-3 py-2 text-sm bg-[#faf6f0] border border-[#e8ddd3] rounded-lg text-[#9a8478] resize-none cursor-default"
+                          className="w-full px-4 py-3 text-base bg-[var(--background)] border border-[var(--border)] rounded-xl text-[var(--muted)] resize-none cursor-default"
                         />
                       </div>
                     )}
 
                     {/* 3. Cleaned Memo — editable */}
                     <div>
-                      <label className="block text-xs font-medium uppercase tracking-wide text-[#9a8478] mb-1">
+                      <label className="block text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-1">
                         Cleaned
                       </label>
                       <textarea
                         value={editMemo}
                         onChange={(e) => setEditMemo(e.target.value)}
                         rows={6}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#e8ddd3] rounded-lg text-[#1c150d] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                        className="w-full px-4 py-3 text-base bg-[var(--card-strong)] border border-[var(--border)] rounded-xl text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-none shadow-[var(--shadow-soft)]"
                       />
                     </div>
 
-                    {/* 4. Summary — read-only */}
-                    {editSummary && (
-                      <div>
-                        <label className="block text-xs font-medium uppercase tracking-wide text-[#9a8478] mb-1">
-                          Summary
-                        </label>
-                        <textarea
-                          value={editSummary}
-                          readOnly
-                          rows={3}
-                          className="w-full px-3 py-2 text-sm bg-[#faf6f0] border border-[#e8ddd3] rounded-lg text-[#9a8478] resize-none cursor-default"
-                        />
-                      </div>
-                    )}
-
-                    {/* 5. Tags — toggle pills + search links */}
+                    {/* 4. Summary — editable */}
                     <div>
-                      <label className="block text-xs font-medium uppercase tracking-wide text-[#9a8478] mb-2">
+                      <label className="block text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-1">
+                        Summary
+                      </label>
+                      <textarea
+                        value={editSummary}
+                        onChange={(e) => setEditSummary(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 text-base bg-[var(--card-strong)] border border-[var(--border)] rounded-xl text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-none shadow-[var(--shadow-soft)]"
+                      />
+                    </div>
+
+                    {/* 5. Tags */}
+                    <div>
+                      <label className="block text-sm font-medium uppercase tracking-wide text-[var(--muted)] mb-2">
                         Tags
                       </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {PRESET_TAGS.map((tag) => {
-                          const selected = editTags.includes(tag);
-                          return (
-                            <div key={tag} className="relative group/tag">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setEditTags((prev) =>
-                                    selected
-                                      ? prev.filter((t) => t !== tag)
-                                      : [...prev, tag]
-                                  )
-                                }
-                                className={`px-2 py-0.5 text-xs rounded-md font-medium transition-colors ${
-                                  selected
-                                    ? "bg-orange-500 text-white pr-6"
-                                    : "bg-[#f0e8df] text-[#7c5c47] hover:bg-[#e8ddd3]"
-                                }`}
-                              >
-                                {tag}
-                              </button>
-                              {/* Link to search for selected tags */}
-                              {selected && (
-                                <Link
-                                  href={`/search?q=${encodeURIComponent(tag)}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="absolute right-1 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-xs leading-none"
-                                  title={`Search for "${tag}"`}
-                                >
-                                  ↗
-                                </Link>
+                      {/* Active tags with remove button */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {editTags.length === 0 && (
+                          <span className="text-sm text-[var(--muted)] italic">No tags</span>
+                        )}
+                        {editTags.map((tag) => (
+                          <div
+                            key={tag}
+                            className={`flex items-center gap-1 pl-3 pr-2 py-1 text-sm rounded-md font-medium ${getTagColor(tag)}`}
+                          >
+                            <Link
+                              href={`/search?q=${encodeURIComponent(tag)}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:underline"
+                              title={`Search for "${tag}"`}
+                            >
+                              {tag}
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => setEditTags((prev) => prev.filter((t) => t !== tag))}
+                              className="opacity-50 hover:opacity-100 leading-none px-0.5 transition-opacity"
+                              title={`Remove "${tag}"`}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Searchable tag picker */}
+                      {PRESET_TAGS.filter((t) => !editTags.includes(t)).length > 0 && (
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={tagSearch}
+                            onChange={(e) => setTagSearch(e.target.value)}
+                            onBlur={() => setTimeout(() => setTagSearch(""), 150)}
+                            placeholder="+ Add tag…"
+                            className="text-sm px-3 py-1.5 bg-[var(--card-strong)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] shadow-[var(--shadow-soft)] w-44"
+                          />
+                          {tagSearch && (
+                            <div className="absolute top-full left-0 mt-1 w-48 bg-[var(--card-strong)] border border-[var(--border)] rounded-xl shadow-[var(--shadow-lift)] z-20 max-h-48 overflow-y-auto">
+                              {PRESET_TAGS.filter(
+                                (t) => !editTags.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())
+                              ).length === 0 ? (
+                                <p className="px-3 py-2 text-sm text-[var(--muted)]">No matches</p>
+                              ) : (
+                                PRESET_TAGS.filter(
+                                  (t) => !editTags.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())
+                                ).map((tag) => (
+                                  <button
+                                    key={tag}
+                                    type="button"
+                                    onMouseDown={() => {
+                                      setEditTags((prev) => [...prev, tag]);
+                                      setTagSearch("");
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--accent-soft)] transition-colors"
+                                  >
+                                    {tag}
+                                  </button>
+                                ))
                               )}
                             </div>
-                          );
-                        })}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Save / Delete */}
@@ -627,20 +688,20 @@ export default function FolderDetailPage() {
                       <button
                         onClick={() => saveEdit(note.id)}
                         disabled={isSavingNote}
-                        className="px-4 py-1.5 text-sm bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 transition-all"
+                        className="px-5 py-2.5 text-base bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] text-white rounded-xl hover:brightness-105 disabled:opacity-50 transition-all"
                       >
                         {isSavingNote ? "Saving..." : "Save changes"}
                       </button>
                       <button
                         onClick={cancelEdit}
-                        className="px-4 py-1.5 text-sm bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors"
+                        className="px-5 py-2.5 text-base bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => setDeleteNoteId(note.id)}
                         disabled={isDeleting}
-                        className="ml-auto px-3 py-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 transition-colors"
+                        className="ml-auto px-4 py-2 text-base bg-red-50 text-red-600 rounded-xl hover:bg-red-100 disabled:opacity-50 transition-colors"
                       >
                         {isDeleting ? "Deleting..." : "Delete"}
                       </button>
@@ -648,14 +709,14 @@ export default function FolderDetailPage() {
 
                     {/* Move to folder */}
                     {otherFolders.length > 0 && (
-                      <div className="flex items-center gap-2 pt-3 border-t border-[#f0e8df]">
-                        <label className="text-xs text-[#9a8478] flex-shrink-0">
+                      <div className="flex items-center gap-2 pt-3 border-t border-[var(--border)]">
+                        <label className="text-sm text-[var(--muted)] flex-shrink-0">
                           Move to:
                         </label>
                         <select
                           value={moveFolderId}
                           onChange={(e) => setMoveFolderId(e.target.value)}
-                          className="flex-1 px-2 py-1 text-xs bg-white border border-[#e8ddd3] rounded text-[#1c150d] focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          className="flex-1 px-3 py-1.5 text-sm bg-[var(--card-strong)] border border-[var(--border)] rounded text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] shadow-[var(--shadow-soft)]"
                         >
                           <option value="">Select folder...</option>
                           {otherFolders.map((f) => (
@@ -667,7 +728,7 @@ export default function FolderDetailPage() {
                         <button
                           onClick={() => moveNote(note.id, moveFolderId)}
                           disabled={!moveFolderId || isSavingNote}
-                          className="px-3 py-1 text-xs bg-[#f0e8df] text-[#3d2e22] rounded hover:bg-[#e8ddd3] disabled:opacity-40 transition-colors"
+                          className="px-5 py-2.5 text-base bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] disabled:opacity-40 transition-colors"
                         >
                           {isSavingNote ? (
                             <span className="flex items-center gap-1">
@@ -691,11 +752,11 @@ export default function FolderDetailPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <span className="text-4xl">📭</span>
-          <h2 className="mt-4 text-lg font-semibold text-[#1c150d]">
+          <span className="text-5xl">📭</span>
+          <h2 className="mt-4 text-xl font-semibold text-[var(--foreground)]">
             No notes yet
           </h2>
-          <p className="mt-2 text-[#9a8478]">
+          <p className="mt-2 text-base text-[var(--muted)]">
             Capture something to add it to this folder
           </p>
         </div>
@@ -703,9 +764,19 @@ export default function FolderDetailPage() {
 
       {/* Batch Move Modal */}
       {showBatchMoveModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <h2 className="text-lg font-bold text-[#1c150d] mb-4">
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeAllModals();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-md shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Move notes"
+          >
+            <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">
               Move {selectedIds.size} {selectedIds.size === 1 ? "note" : "notes"} to…
             </h2>
             <div className="space-y-2 mb-6 max-h-64 overflow-y-auto">
@@ -713,36 +784,36 @@ export default function FolderDetailPage() {
                 <button
                   key={f.id}
                   onClick={() => setBatchTargetFolderId(f.id)}
-                  className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`w-full text-left px-5 py-3 rounded-xl text-base font-medium transition-colors ${
                     batchTargetFolderId === f.id
-                      ? "bg-orange-500 text-white"
-                      : "bg-[#faf6f0] text-[#3d2e22] hover:bg-[#f0e8df]"
+                      ? "bg-[var(--accent)] text-white"
+                      : "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--accent-soft)]"
                   }`}
                 >
                   {f.name}
                 </button>
               ))}
               {otherFolders.length === 0 && (
-                <p className="text-sm text-[#9a8478] text-center py-4">
+                <p className="text-base text-[var(--muted)] text-center py-4">
                   No other folders available
                 </p>
               )}
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button
                 onClick={() => {
                   setShowBatchMoveModal(false);
                   setBatchTargetFolderId("");
                 }}
                 disabled={isMovingBatch}
-                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] disabled:opacity-50 transition-colors text-base font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBatchMove}
                 disabled={!batchTargetFolderId || isMovingBatch}
-                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                className="flex-1 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl hover:bg-[var(--accent-strong)] disabled:opacity-50 transition-colors text-base font-medium"
               >
                 {isMovingBatch ? (
                   <span className="flex items-center justify-center gap-2">
@@ -763,28 +834,38 @@ export default function FolderDetailPage() {
 
       {/* Delete Note Confirmation Modal */}
       {deleteNoteId && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <h2 className="text-lg font-bold text-[#1c150d] mb-2">
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeAllModals();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-md shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete note"
+          >
+            <h2 className="text-xl font-semibold text-[var(--foreground)] mb-2">
               Delete Note?
             </h2>
-            <p className="text-sm text-[#3d2e22] mb-6">
+            <p className="text-base text-[var(--sidebar-ink)] mb-6">
               This cannot be undone.
             </p>
             {noteError && (
-              <p className="text-sm text-red-500 mb-4">{noteError}</p>
+              <p className="text-base text-red-500 mb-4">{noteError}</p>
             )}
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button
                 onClick={() => setDeleteNoteId(null)}
-                className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={() => confirmDeleteNote(deleteNoteId)}
                 disabled={!!isDeletingNoteId}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                className="flex-1 px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-colors text-base font-medium"
               >
                 {isDeletingNoteId ? "Deleting..." : "Delete"}
               </button>
@@ -795,9 +876,19 @@ export default function FolderDetailPage() {
 
       {/* Folder Rename Modal */}
       {folderModal?.kind === "rename" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-[#1c150d] mb-4">
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeAllModals();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Rename folder"
+          >
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-4">
               Rename Folder
             </h2>
             <form onSubmit={handleFolderRename} className="space-y-4">
@@ -808,23 +899,23 @@ export default function FolderDetailPage() {
                 placeholder="Folder name"
                 required
                 autoFocus
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-3 bg-[var(--card-strong)] border border-[var(--border)] rounded-xl text-base text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] shadow-[var(--shadow-soft)]"
               />
               {folderError && (
-                <p className="text-sm text-red-500">{folderError}</p>
+                <p className="text-base text-red-500">{folderError}</p>
               )}
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={closeFolderModal}
-                  className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingFolder || !folderFormValue.trim()}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 transition-all"
+                  className="flex-1 px-5 py-2.5 bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] text-white rounded-xl hover:brightness-105 disabled:opacity-50 transition-all text-base font-medium"
                 >
                   {isSavingFolder ? "Saving..." : "Rename"}
                 </button>
@@ -836,12 +927,22 @@ export default function FolderDetailPage() {
 
       {/* Folder Instructions Modal */}
       {folderModal?.kind === "instructions" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-[#1c150d] mb-1">
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeAllModals();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit folder instructions"
+          >
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-1">
               AI Instructions
             </h2>
-            <p className="text-sm text-[#9a8478] mb-4">
+            <p className="text-base text-[var(--muted)] mb-4">
               Custom instructions for this folder
             </p>
             <form onSubmit={handleFolderInstructions} className="space-y-4">
@@ -851,23 +952,23 @@ export default function FolderDetailPage() {
                 placeholder="e.g. Focus on actionable insights and key metrics"
                 rows={5}
                 autoFocus
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                className="w-full px-4 py-3 bg-[var(--card-strong)] border border-[var(--border)] rounded-xl text-base text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none shadow-[var(--shadow-soft)]"
               />
               {folderError && (
-                <p className="text-sm text-red-500">{folderError}</p>
+                <p className="text-base text-red-500">{folderError}</p>
               )}
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={closeFolderModal}
-                  className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingFolder}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 transition-all"
+                  className="flex-1 px-5 py-2.5 bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] text-white rounded-xl hover:brightness-105 disabled:opacity-50 transition-all text-base font-medium"
                 >
                   {isSavingFolder ? "Saving..." : "Save"}
                 </button>
@@ -879,29 +980,39 @@ export default function FolderDetailPage() {
 
       {/* Folder Delete Modal */}
       {folderModal?.kind === "delete" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-[#1c150d] mb-2">
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeAllModals();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete folder"
+          >
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-2">
               Delete Folder?
             </h2>
-            <p className="text-[#3d2e22] mb-6">
+            <p className="text-base text-[var(--sidebar-ink)] mb-6">
               Delete <strong>&quot;{folder?.name}&quot;</strong> and all its notes? This
               cannot be undone.
             </p>
             {folderError && (
-              <p className="text-sm text-red-500 mb-4">{folderError}</p>
+              <p className="text-base text-red-500 mb-4">{folderError}</p>
             )}
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button
                 onClick={closeFolderModal}
-                className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleFolderDelete}
                 disabled={isSavingFolder}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                className="flex-1 px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-colors text-base font-medium"
               >
                 {isSavingFolder ? "Deleting..." : "Delete"}
               </button>

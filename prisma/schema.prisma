@@ -19,6 +19,7 @@ model User {
   folders   Folder[]
   notes     Note[]
   longNotes LongNote[]
+  trackerItems TrackerItem[]
   settings  Settings?
   accounts  Account[]
   sessions  Session[]
@@ -86,6 +87,24 @@ enum FolderType {
   LONG
 }
 
+enum TrackerType {
+  BOOK
+  MOVIE
+  MUSIC
+}
+
+enum TrackerStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TrackerSource {
+  MANUAL
+  NOTE_AUTO
+  IMPORT
+}
+
 model Note {
   id               String         @id @default(cuid())
   originalText     String         @db.Text
@@ -105,11 +124,40 @@ model Note {
   userId           String
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   calendarEvent    CalendarEvent?
+  trackerItems     TrackerItem[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
   @@index([userId])
   @@index([folderId])
+}
+
+model TrackerItem {
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type             TrackerType
+  status           TrackerStatus @default(PLANNED)
+  title            String
+  titleNormalized  String
+  creator          String?
+  rating           Float?
+  notes            String?       @db.Text
+  tags             String[]
+  source           TrackerSource @default(MANUAL)
+  isRecommendation Boolean       @default(false)
+  sourceNoteId     String?
+  sourceNote       Note?         @relation(fields: [sourceNoteId], references: [id], onDelete: SetNull)
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([sourceNoteId])
+  @@unique([userId, type, titleNormalized])
 }
 
 model LongNote {

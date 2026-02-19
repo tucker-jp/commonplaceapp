@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
+    const folderId = searchParams.get("folderId")?.trim();
 
     if (!q) {
       return NextResponse.json([]);
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
     const notes = await db.note.findMany({
       where: {
         userId: user.id,
+        ...(folderId ? { folderId } : {}),
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { summary: { contains: q, mode: "insensitive" } },

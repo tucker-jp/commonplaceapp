@@ -1,11 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Manrope, Outfit } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
 import { SessionProvider } from "@/components/SessionProvider";
 
-const inter = Inter({
-  variable: "--font-inter",
+const bodyFont = Outfit({
+  variable: "--font-body",
+  subsets: ["latin"],
+});
+
+const displayFont = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+});
+
+const uiFont = Manrope({
+  variable: "--font-ui",
   subsets: ["latin"],
 });
 
@@ -19,7 +29,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#3b1f0f",
+  themeColor: "#efe6dc",
 };
 
 export default function RootLayout({
@@ -29,12 +39,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased min-h-screen`}>
+      <body
+        className={`${bodyFont.variable} ${displayFont.variable} ${uiFont.variable} font-sans antialiased min-h-screen`}
+      >
         <SessionProvider>
           <div className="flex min-h-screen">
             <Navigation />
             <main className="flex-1 min-h-screen">
-              <div className="max-w-3xl mx-auto px-4 py-6 lg:px-10 lg:py-8 pb-24 lg:pb-10">
+              <div className="max-w-6xl mx-auto px-5 py-6 lg:px-10 lg:py-8 pb-24 lg:pb-8 page-enter">
                 {children}
               </div>
             </main>

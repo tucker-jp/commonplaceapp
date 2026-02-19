@@ -103,19 +103,19 @@ export function RecordButton({
       <button
         onClick={handleClick}
         disabled={disabled}
-        className={`relative w-24 h-24 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 disabled:opacity-50 disabled:cursor-not-allowed
+        className={`relative w-40 h-40 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)] disabled:opacity-50 disabled:cursor-not-allowed
           ${isRecording
-            ? "bg-red-500 hover:bg-red-600 scale-110"
-            : "bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+            ? "bg-rose-600 hover:bg-rose-700 scale-105 shadow-[var(--shadow-lift)]"
+            : "bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] hover:brightness-105 shadow-[var(--shadow-lift)]"
           }`}
       >
         {/* Pulse animation when recording */}
         {isRecording && (
-          <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-30" />
+          <span className="absolute inset-0 rounded-full bg-rose-500 animate-ping opacity-30" />
         )}
 
         {/* Icon */}
-        <span className="relative text-white text-4xl">
+        <span className="relative text-white text-6xl">
           {isRecording ? "⏹️" : "🎙️"}
         </span>
       </button>
@@ -123,10 +123,10 @@ export function RecordButton({
       {/* Duration display */}
       {isRecording && (
         <div className="text-center">
-          <p className="text-2xl font-mono text-red-600 dark:text-red-400">
+          <p className="text-3xl font-mono text-rose-600">
             {formatDuration(duration)}
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-base text-[var(--muted)]">
             Max {formatDuration(maxDuration)}
           </p>
         </div>
@@ -134,14 +134,14 @@ export function RecordButton({
 
       {/* Instructions */}
       {!isRecording && !error && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-base text-[var(--muted)]">
           Tap to start recording
         </p>
       )}
 
       {/* Error message */}
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400 text-center max-w-xs">
+        <p className="text-base text-rose-600 text-center max-w-xs">
           {error}
         </p>
       )}

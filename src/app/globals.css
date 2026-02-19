@@ -1,22 +1,122 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf6f0;
-  --foreground: #1c150d;
-  --sidebar: #3b1f0f;
-  --card: #ffffff;
-  --border: #e8ddd3;
-  --muted: #9a8478;
+  --background: #f6f2ed;
+  --background-deep: #efe7df;
+  --foreground: #2f2a25;
+  --sidebar: #f2ebe3;
+  --sidebar-ink: #4b4036;
+  --card: #fdfaf6;
+  --card-strong: #ffffff;
+  --border: #e6ddd3;
+  --muted: #8a7b6d;
+  --accent: #c07a5a;
+  --accent-strong: #a76347;
+  --accent-soft: #f3e3d7;
+  --accent-ring: rgba(192, 122, 90, 0.28);
+  --accent-sage: #8ca196;
+  --accent-gold: #d1b07c;
+  --shadow-soft: 0 10px 26px rgba(38, 30, 24, 0.08);
+  --shadow-lift: 0 16px 32px rgba(38, 30, 24, 0.14);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-body);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(900px 520px at 8% -10%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(1000px 720px at 90% 0%, rgba(255, 255, 255, 0.6), transparent 55%),
+    linear-gradient(180deg, var(--background) 0%, var(--background-deep) 100%);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-body), "Segoe UI", sans-serif;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.015em;
+}
+
+button,
+.button-font {
+  font-family: var(--font-ui), var(--font-body), "Segoe UI", sans-serif;
+  letter-spacing: 0.005em;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--foreground);
+}
+
+.hover-lift {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.page-enter {
+  animation: fade-up 600ms ease-out both;
+}
+
+.stagger-1 {
+  animation-delay: 80ms;
+}
+
+.stagger-2 {
+  animation-delay: 160ms;
+}
+
+.stagger-3 {
+  animation-delay: 240ms;
+}
+
+.sheet-enter {
+  animation: sheet-in 240ms ease-out both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .stagger-1,
+  .stagger-2,
+  .stagger-3,
+  .sheet-enter {
+    animation: none;
+  }
+
+  .hover-lift {
+    transition: none;
+  }
 }

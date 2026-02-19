@@ -27,11 +27,18 @@ export default function FoldersPage() {
 
   // Form state
   const [formName, setFormName] = useState("");
-  const [formType, setFormType] = useState<"FRAGMENTS" | "LONG">("FRAGMENTS");
   const [formInstructions, setFormInstructions] = useState("");
   const [formParentId, setFormParentId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const isTypingTarget = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return false;
+    return (
+      target.isContentEditable ||
+      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)
+    );
+  };
 
   async function loadFolders() {
     try {
@@ -60,9 +67,30 @@ export default function FoldersPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && modal) {
+        e.preventDefault();
+        closeModal();
+        return;
+      }
+
+      if (modal || e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target)) {
+        return;
+      }
+
+      if (e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        openCreateModal();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [modal]);
+
   function openCreateModal(parentId?: string) {
     setFormName("");
-    setFormType("FRAGMENTS");
     setFormInstructions("");
     setFormParentId(parentId ?? "");
     setFormError(null);
@@ -105,8 +133,7 @@ export default function FoldersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formName.trim(),
-          type: formType,
-          instructions: formInstructions.trim() || undefined,
+          type: "FRAGMENTS",
           parentId: formParentId || undefined,
         }),
       });
@@ -217,16 +244,16 @@ export default function FoldersPage() {
   const topLevelFolders = folders.filter((f) => !f.parentId);
 
   const inputClass =
-    "w-full px-3 py-2 bg-white border border-[#e8ddd3] rounded-lg text-[#1c150d] placeholder-[#9a8478] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+    "w-full px-4 py-3 bg-[var(--card-strong)] border border-[var(--border)] rounded-xl text-base text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent shadow-[var(--shadow-soft)]";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#1c150d]">Folders</h1>
+        <h1 className="text-3xl font-semibold text-[var(--foreground)]">Folders</h1>
         <button
           onClick={() => openCreateModal()}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-5 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white text-base font-medium rounded-xl transition-colors"
         >
           + New Folder
         </button>
@@ -235,38 +262,38 @@ export default function FoldersPage() {
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full" />
+          <div className="animate-spin h-8 w-8 border-2 border-[var(--accent)] border-t-transparent rounded-full" />
         </div>
       )}
 
       {/* Folders List */}
       {!isLoading && (
-        <div className="space-y-2" ref={menuRef}>
+        <div className="space-y-3" ref={menuRef}>
           {displayFolders.map(({ folder, depth }) => (
             <div
               key={folder.id}
-              style={{ marginLeft: depth * 20 }}
+              style={{ marginLeft: Math.min(depth, 3) * 20 }}
               className="relative"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {depth > 0 && (
-                  <span className="text-[#9a8478] select-none mr-1 text-sm">└─</span>
+                  <span className="text-[var(--muted)] select-none mr-1 text-base">└─</span>
                 )}
                 <Link
                   href={`/folders/${folder.id}`}
-                  className="flex-1 block p-4 bg-white rounded-xl border border-[#e8ddd3] shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
+                  className="flex-1 block px-5 py-4 bg-[var(--card)] rounded-2xl border border-[var(--border)] shadow-[var(--shadow-soft)] hover:border-[var(--accent-soft)] transition-all hover-lift"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{folder.type === "LONG" ? "📝" : "📁"}</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl">{folder.type === "LONG" ? "📝" : "📁"}</span>
                       <div>
-                        <h2 className="font-semibold text-[#1c150d]">{folder.name}</h2>
-                        <p className="text-sm text-[#9a8478]">
+                        <h2 className="text-2xl font-semibold text-[var(--foreground)]">{folder.name}</h2>
+                        <p className="text-sm text-[var(--muted)]">
                           {folder.noteCount} {folder.noteCount === 1 ? "note" : "notes"}
                         </p>
                       </div>
                     </div>
-                    <span className="text-xs px-2 py-1 bg-[#f0e8df] text-[#7c5c47] rounded-md font-medium">
+                    <span className="text-sm px-3 py-1 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-lg font-medium">
                       {folder.type === "LONG" ? "Long Note" : "Fragments"}
                     </span>
                   </div>
@@ -279,22 +306,22 @@ export default function FoldersPage() {
                       e.stopPropagation();
                       setOpenMenuId(openMenuId === folder.id ? null : folder.id);
                     }}
-                    className="p-2 text-[#9a8478] hover:text-[#1c150d] rounded-lg hover:bg-[#f0e8df] transition-colors"
+                    className="p-3 text-[var(--muted)] hover:text-[var(--foreground)] rounded-xl hover:bg-[var(--accent-soft)] transition-colors"
                     aria-label="Folder options"
                   >
                     ⋯
                   </button>
                   {openMenuId === folder.id && (
-                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl border border-[#e8ddd3] shadow-lg z-20 overflow-hidden">
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--card-strong)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-soft)] z-20 overflow-hidden">
                       <button
                         onClick={() => openRenameModal(folder)}
-                        className="w-full text-left px-4 py-2.5 text-sm text-[#3d2e22] hover:bg-[#faf6f0] transition-colors"
+                        className="w-full text-left px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
                       >
                         Rename
                       </button>
                       <button
                         onClick={() => openInstructionsModal(folder)}
-                        className="w-full text-left px-4 py-2.5 text-sm text-[#3d2e22] hover:bg-[#faf6f0] transition-colors"
+                        className="w-full text-left px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
                       >
                         Edit AI Instructions
                       </button>
@@ -303,7 +330,7 @@ export default function FoldersPage() {
                           openCreateModal(folder.id);
                           setOpenMenuId(null);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-[#3d2e22] hover:bg-[#faf6f0] transition-colors"
+                        className="w-full text-left px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
                       >
                         Add Subfolder
                       </button>
@@ -325,12 +352,14 @@ export default function FoldersPage() {
       {/* Empty State */}
       {!isLoading && folders.length === 0 && (
         <div className="text-center py-16">
-          <span className="text-5xl">📂</span>
-          <h2 className="mt-4 text-lg font-semibold text-[#1c150d]">No folders yet</h2>
-          <p className="mt-2 text-[#9a8478]">Create your first folder to organize your notes</p>
+          <span className="text-6xl">📂</span>
+          <h2 className="mt-4 text-xl font-semibold text-[var(--foreground)]">No folders yet</h2>
+          <p className="mt-2 text-base text-[var(--muted)]">
+            Create your first folder to organize your notes
+          </p>
           <button
             onClick={() => openCreateModal()}
-            className="mt-5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+            className="mt-6 px-5 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white text-base font-medium rounded-xl transition-colors"
           >
             Create Folder
           </button>
@@ -339,14 +368,26 @@ export default function FoldersPage() {
 
       {/* Create Modal */}
       {modal?.kind === "create" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-[#1c150d] mb-5">
-              {modal.parentId ? "Create Subfolder" : "Create New Folder"}
+        <div
+          className="fixed inset-0 bg-transparent flex items-start justify-end z-50 p-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-7 w-full max-w-md shadow-[var(--shadow-lift)] border border-[var(--border)] mt-2 max-h-[calc(100vh-3rem)] overflow-y-auto sheet-enter"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Create folder"
+          >
+            <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">
+              New Folder
             </h2>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-[#3d2e22] mb-1">Name</label>
+                <label className="block text-base font-medium text-[var(--foreground)] mb-1">
+                  Name
+                </label>
                 <input
                   type="text"
                   value={formName}
@@ -357,21 +398,11 @@ export default function FoldersPage() {
                   className={inputClass}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#3d2e22] mb-1">Type</label>
-                <select
-                  value={formType}
-                  onChange={(e) => setFormType(e.target.value as "FRAGMENTS" | "LONG")}
-                  className={inputClass}
-                >
-                  <option value="FRAGMENTS">Fragments</option>
-                  <option value="LONG">Long Notes</option>
-                </select>
-              </div>
               {!modal.parentId && topLevelFolders.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-[#3d2e22] mb-1">
-                    Parent Folder <span className="font-normal text-[#9a8478]">(optional)</span>
+                  <label className="block text-base font-medium text-[var(--foreground)] mb-1">
+                    Parent Folder{" "}
+                    <span className="font-normal text-[var(--muted)]">(optional)</span>
                   </label>
                   <select
                     value={formParentId}
@@ -385,31 +416,19 @@ export default function FoldersPage() {
                   </select>
                 </div>
               )}
-              <div>
-                <label className="block text-sm font-medium text-[#3d2e22] mb-1">
-                  Custom AI Instructions <span className="font-normal text-[#9a8478]">(optional)</span>
-                </label>
-                <textarea
-                  value={formInstructions}
-                  onChange={(e) => setFormInstructions(e.target.value)}
-                  placeholder="e.g. Focus on actionable insights and key metrics"
-                  rows={3}
-                  className={`${inputClass} resize-none`}
-                />
-              </div>
               {formError && <p className="text-sm text-red-500">{formError}</p>}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-4 pt-2">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !formName.trim()}
-                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl hover:bg-[var(--accent-strong)] disabled:opacity-50 transition-colors text-base font-medium"
                 >
                   {isSubmitting ? "Creating..." : "Create"}
                 </button>
@@ -421,9 +440,19 @@ export default function FoldersPage() {
 
       {/* Rename Modal */}
       {modal?.kind === "rename" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-[#1c150d] mb-5">Rename Folder</h2>
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Rename folder"
+          >
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-6">Rename Folder</h2>
             <form onSubmit={handleRename} className="space-y-4">
               <input
                 type="text"
@@ -435,18 +464,18 @@ export default function FoldersPage() {
                 className={inputClass}
               />
               {formError && <p className="text-sm text-red-500">{formError}</p>}
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !formName.trim()}
-                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl hover:bg-[var(--accent-strong)] disabled:opacity-50 transition-colors text-base font-medium"
                 >
                   {isSubmitting ? "Saving..." : "Rename"}
                 </button>
@@ -458,11 +487,22 @@ export default function FoldersPage() {
 
       {/* Instructions Modal */}
       {modal?.kind === "instructions" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-[#1c150d] mb-1">AI Instructions</h2>
-            <p className="text-sm text-[#9a8478] mb-5">
-              Custom instructions for <strong className="text-[#3d2e22]">{modal.folder.name}</strong>
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit AI instructions"
+          >
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-1">AI Instructions</h2>
+            <p className="text-base text-[var(--muted)] mb-6">
+              Custom instructions for{" "}
+              <strong className="text-[var(--foreground)]">{modal.folder.name}</strong>
             </p>
             <form onSubmit={handleSaveInstructions} className="space-y-4">
               <textarea
@@ -474,18 +514,18 @@ export default function FoldersPage() {
                 className={`${inputClass} resize-none`}
               />
               {formError && <p className="text-sm text-red-500">{formError}</p>}
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm font-medium"
+                  className="flex-1 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl hover:bg-[var(--accent-strong)] disabled:opacity-50 transition-colors text-base font-medium"
                 >
                   {isSubmitting ? "Saving..." : "Save"}
                 </button>
@@ -497,24 +537,34 @@ export default function FoldersPage() {
 
       {/* Delete Modal */}
       {modal?.kind === "delete" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-[#1c150d] mb-2">Delete Folder?</h2>
-            <p className="text-[#3d2e22] mb-6">
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete folder"
+          >
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-2">Delete Folder?</h2>
+            <p className="text-base text-[var(--sidebar-ink)] mb-6">
               Delete <strong>&quot;{modal.folder.name}&quot;</strong> and all its notes? This cannot be undone.
             </p>
             {formError && <p className="text-sm text-red-500 mb-4">{formError}</p>}
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button
                 onClick={closeModal}
-                className="flex-1 px-4 py-2 bg-[#f0e8df] text-[#3d2e22] rounded-lg hover:bg-[#e8ddd3] transition-colors text-sm font-medium"
+                className="flex-1 px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors text-sm font-medium"
+                className="flex-1 px-5 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 disabled:opacity-50 transition-colors text-base font-medium"
               >
                 {isSubmitting ? "Deleting..." : "Delete"}
               </button>
