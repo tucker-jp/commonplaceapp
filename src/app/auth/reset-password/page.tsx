@@ -49,6 +49,23 @@ function ResetPasswordForm() {
     setMessage("Password updated. You can sign in now.");
   };
 
+  if (status === "success") {
+    return (
+      <div className="text-center space-y-4">
+        <div className="text-3xl">&#10003;</div>
+        <p className="text-sm text-[var(--foreground)] font-medium">
+          Password updated successfully.
+        </p>
+        <Link
+          href="/auth/login"
+          className="inline-block w-full py-2 px-4 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-medium rounded-lg transition-colors text-center"
+        >
+          Return to login
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
