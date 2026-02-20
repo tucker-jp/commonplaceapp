@@ -75,7 +75,15 @@ function LoginForm() {
       </div>
 
       {error && (
-        <p className="text-sm text-rose-600">{error}</p>
+        <div className="space-y-2">
+          <p className="text-sm text-rose-600">{error}</p>
+          <Link
+            href={`/auth/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+            className="text-sm text-[var(--accent)] hover:text-[var(--accent-strong)] font-medium"
+          >
+            Forgot your password?
+          </Link>
+        </div>
       )}
 
       <button

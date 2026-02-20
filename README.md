@@ -73,6 +73,12 @@ npm run dev
 
 5) Open http://localhost:3000 and register an account.
 
+## Development Workflow
+
+- Make changes locally and test with `npm run dev`.
+- Use a `dev` branch for ongoing work.
+- Only merge to `main` (production) when explicitly asked.
+
 ## Authentication
 
 CommonPlace uses NextAuth.js with an email/password credentials provider.

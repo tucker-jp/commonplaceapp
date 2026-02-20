@@ -14,9 +14,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       return NextResponse.json(
         { error: "Invalid email format" },
         { status: 400 }
@@ -33,8 +35,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await db.user.findUnique({
-      where: { email },
+    const existingUser = await db.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
     });
 
     if (existingUser) {
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const user = await db.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         name: name || null,
         password: hashedPassword,
       },

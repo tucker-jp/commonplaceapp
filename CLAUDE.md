@@ -53,6 +53,7 @@ npx prisma generate
 - After completing each task, mark it done in `to_do.md`
 - When you discover new issues or improvements, add them to `to_do.md`
 - When you add/remove/rename key files or change architecture, update both `CLAUDE.md` and `README.md`
+- Default to working on a `dev` branch; only merge to `main` (production) when explicitly requested
 
 ### Session end checklist
 1) Update `to_do.md` (remove completed items, add new ones)
