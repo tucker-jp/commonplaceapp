@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createPasswordResetToken } from "@/lib/password-reset";
 import { sendPasswordResetEmail } from "@/lib/email";
+// Trigger fresh deploy to pick up SMTP + NEXTAUTH_URL env vars
 
 function getAppUrl(request: NextRequest) {
   if (process.env.APP_URL) return process.env.APP_URL;
