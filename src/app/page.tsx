@@ -17,6 +17,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [recommendationWarning, setRecommendationWarning] = useState<string | null>(null);
+  const [showAbout, setShowAbout] = useState(false);
 
   useEffect(() => {
     fetch("/api/folders")
@@ -88,7 +89,13 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="text-center pt-2 page-enter stagger-1">
+      <div className="relative text-center pt-2 page-enter stagger-1">
+        <button
+          onClick={() => setShowAbout(true)}
+          className="absolute right-0 top-0 mt-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
+        >
+          About
+        </button>
         <h1 className="text-4xl font-semibold text-[var(--foreground)] mb-1">
           Capture a Thought
         </h1>
@@ -213,6 +220,45 @@ export default function Home() {
       <div className="page-enter stagger-3">
         <NoteInput onSubmit={handleTextSubmit} disabled={isProcessing || isRecording} />
       </div>
+
+      {/* About Modal */}
+      {showAbout && (
+        <div
+          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowAbout(false);
+          }}
+        >
+          <div
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="About CommonPlace"
+          >
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-4">What is a Commonplace Book?</h2>
+            <p className="text-sm text-[var(--muted)] leading-relaxed mb-6">
+              A commonplace book is a personal notebook used since the Renaissance to collect quotes, ideas, observations, and knowledge from reading and daily life. Thinkers like John Locke, Thomas Jefferson, and Marcus Aurelius kept commonplace books to organize their thoughts and make connections across subjects. CommonPlace brings this tradition to the digital age — capture your ideas by voice or text, and let AI help organize them.
+            </p>
+
+            <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-4">How to Use CommonPlace</h2>
+            <ul className="space-y-3 text-sm text-[var(--muted)] leading-relaxed mb-6">
+              <li><span className="font-semibold text-[var(--foreground)]">Capture</span> — Record a voice memo or type a thought. AI transcribes, tags, and files it into the right folder automatically.</li>
+              <li><span className="font-semibold text-[var(--foreground)]">Folders</span> — Browse and organize your notes. Create folders with custom AI instructions to control how notes are analyzed.</li>
+              <li><span className="font-semibold text-[var(--foreground)]">Library</span> — Track books, movies, and music you{"'"}ve completed or want to check out. Import items from CSV.</li>
+              <li><span className="font-semibold text-[var(--foreground)]">Ask</span> — Chat with AI about your notes. Select specific folders to search or ask across everything.</li>
+              <li><span className="font-semibold text-[var(--foreground)]">Search</span> — Find notes by keyword or let AI help surface relevant thoughts.</li>
+              <li><span className="font-semibold text-[var(--foreground)]">Settings</span> — Set global instructions that guide how AI processes all your notes.</li>
+            </ul>
+
+            <button
+              onClick={() => setShowAbout(false)}
+              className="w-full px-5 py-2.5 bg-[var(--accent-soft)] text-[var(--foreground)] rounded-xl hover:bg-[var(--border)] transition-colors text-base font-medium cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

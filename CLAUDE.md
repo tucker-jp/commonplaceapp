@@ -23,6 +23,7 @@ CommonPlace is an AI-powered voice memo capture and organization web app built w
 - `src/app/api/analyze/route.ts` - Core pipeline: fetches folders+settings, calls LLM, saves note, auto-adds recommendations
 - `src/app/api/library/route.ts` - GET list + POST library items (recommendations and completed)
 - `src/app/api/library/[itemId]/route.ts` - PATCH + DELETE tracker items
+- `src/app/api/library/import/route.ts` - CSV bulk import for library items (papaparse)
 - `src/app/api/ask/route.ts` - AI chat over notes: semantic search + GPT synthesis
 - `src/lib/recommendations.ts` - Recommendation extraction helpers
 - `src/services/analysis.ts` - LLM analysis pipeline (categorize + analyze in one call)
@@ -50,7 +51,7 @@ npx prisma generate
 ## Ongoing Protocol
 
 ### While working
-- After completing each task, mark it done in `to_do.md`
+- **Keep `to_do.md` constantly updated as you work** — mark off tasks immediately when completed, add new todos for anything discussed or discovered during the session. Don't wait until the end; update it in real time as part of every task.
 - When you discover new issues or improvements, add them to `to_do.md`
 - When you add/remove/rename key files or change architecture, update both `CLAUDE.md` and `README.md`
 - Default to working on a `dev` branch; only merge to `main` (production) when explicitly requested

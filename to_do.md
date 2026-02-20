@@ -7,8 +7,12 @@
 ## Features (Medium Priority)
 - [ ] Add location tagging (browser geolocation API)
 - [ ] Long notes support (append entries to ongoing notes)
-- [ ] Import/sync books from CSV history into Library tracker
-- [ ] Track YouTube Music listening history (Last.fm or Takeout import)
+- [ ] Auto music cataloging (exploring — not ready for implementation)
+  - Goal: automatically capture what you listen to (title, artist, album, play count)
+  - Import old YouTube Music history via Google Takeout (messy data, no album names)
+  - Auto-capture new listens via Last.fm scrobbling (free, clean data, has API)
+  - Schema changes needed: add playCount, lastListenedAt, possibly album to TrackerItem
+  - Best path: Last.fm CSV upload first → API integration later → Takeout as optional
 
 ## Features (Low Priority)
 - [ ] PWA setup (manifest.json, service worker) for mobile install
@@ -59,5 +63,7 @@
 - [x] Security: add response headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
 - [x] Security: add input length validation on POST handlers (analyze, notes, folders, library)
 - [x] Deployment: add `postinstall` script for Prisma generate on Vercel
+- [x] CSV import for Library items (books, movies, music) with duplicate detection
+- [x] About link + modal on home page (commonplace book history + page guide)
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20

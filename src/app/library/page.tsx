@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type TrackerType = "BOOK" | "MOVIE" | "MUSIC";
 type TrackerStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED";
@@ -49,6 +49,16 @@ export default function LibraryPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importMode, setImportMode] = useState<"completed" | "recommended">("completed");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    added: number;
+    skipped: number;
+    errors: string[];
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const creatorRef = useRef<HTMLInputElement>(null);
   const modeRef = useRef<HTMLSelectElement>(null);
@@ -242,6 +252,45 @@ export default function LibraryPage() {
     }
   };
 
+  const handleImport = useCallback(async () => {
+    if (!importFile) return;
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
+      formData.append("type", activeType);
+      formData.append("mode", importMode);
+
+      const res = await fetch("/api/library/import", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Import failed");
+      }
+
+      const result = await res.json();
+      setImportResult(result);
+      if (result.added > 0) {
+        await loadItems();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setIsImporting(false);
+    }
+  }, [importFile, activeType, importMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -253,7 +302,7 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {(["BOOK", "MOVIE", "MUSIC"] as TrackerType[]).map((type) => (
           <button
             key={type}
@@ -267,6 +316,13 @@ export default function LibraryPage() {
             {typeLabels[type]}
           </button>
         ))}
+
+        <button
+          onClick={() => setShowImportModal(true)}
+          className="ml-auto px-4 py-2 rounded-xl text-base font-medium bg-[var(--card-strong)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)] transition-colors"
+        >
+          Import CSV
+        </button>
       </div>
 
       <form
@@ -503,6 +559,96 @@ export default function LibraryPage() {
       ) : (
         <div className="text-center py-16 text-[var(--muted)]">
           <p className="text-base">No items yet for this view.</p>
+        </div>
+      )}
+
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div
+            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-lg w-full max-w-md mx-4 p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-[var(--foreground)]">
+                Import {typeLabels[activeType]}
+              </h2>
+              <button
+                onClick={closeImportModal}
+                className="text-[var(--muted)] hover:text-[var(--foreground)] text-xl leading-none px-1"
+              >
+                &times;
+              </button>
+            </div>
+
+            {importResult ? (
+              <div className="space-y-3">
+                <p className="text-base text-[var(--foreground)]">
+                  {importResult.added} item{importResult.added !== 1 ? "s" : ""} added
+                  {importResult.skipped > 0 && (
+                    <>, {importResult.skipped} duplicate{importResult.skipped !== 1 ? "s" : ""} skipped</>
+                  )}
+                </p>
+                {importResult.errors.length > 0 && (
+                  <div className="text-sm text-red-600 space-y-1 max-h-32 overflow-y-auto">
+                    {importResult.errors.map((err, i) => (
+                      <p key={i}>{err}</p>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={closeImportModal}
+                  className="w-full px-4 py-2.5 text-base bg-[var(--card-strong)] border border-[var(--border)] rounded-xl hover:bg-[var(--border)] transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--muted)] mb-1">
+                      Import as
+                    </label>
+                    <select
+                      value={importMode}
+                      onChange={(e) =>
+                        setImportMode(e.target.value as "completed" | "recommended")
+                      }
+                      className="w-full px-4 py-3 bg-[var(--card-strong)] border border-[var(--border)] rounded-xl text-base text-[var(--foreground)]"
+                    >
+                      <option value="completed">Completed</option>
+                      <option value="recommended">Recommended</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--muted)] mb-1">
+                      CSV file
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                      className="w-full text-base text-[var(--foreground)] file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border file:border-[var(--border)] file:bg-[var(--card-strong)] file:text-[var(--foreground)] file:font-medium file:cursor-pointer"
+                    />
+                  </div>
+
+                  <p className="text-sm text-[var(--muted)]">
+                    Expected columns: Title, Author/Director/Artist, Rating, Notes
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleImport}
+                  disabled={!importFile || isImporting}
+                  className="w-full px-4 py-2.5 text-base bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] text-white rounded-xl hover:brightness-105 disabled:opacity-50 transition-all"
+                >
+                  {isImporting ? "Importing..." : "Import"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
