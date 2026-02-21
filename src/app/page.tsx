@@ -225,7 +225,7 @@ export default function Home() {
       {/* About Modal — portaled to body to escape layout transform */}
       {showAbout && createPortal(
         <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-6 overflow-y-auto"
+          className="fixed inset-0 lg:left-80 flex items-center justify-center z-50 p-6 overflow-y-auto"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAbout(false);
           }}
