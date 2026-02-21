@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type TrackerType = "BOOK" | "MOVIE" | "MUSIC";
 type TrackerStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED";
@@ -562,8 +563,13 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {showImportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      {showImportModal && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeImportModal();
+          }}
+        >
           <div
             className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-lg w-full max-w-md mx-4 p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
@@ -634,9 +640,16 @@ export default function LibraryPage() {
                     />
                   </div>
 
-                  <p className="text-sm text-[var(--muted)]">
-                    Expected columns: Title, Author/Director/Artist, Rating, Notes
-                  </p>
+                  <div className="text-sm text-[var(--muted)] space-y-1.5">
+                    <p>Your CSV should have a header row with these column names (not case sensitive):</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-xs">
+                      <li><span className="font-medium text-[var(--foreground)]">Title</span> or <span className="font-medium text-[var(--foreground)]">Name</span> — required</li>
+                      <li><span className="font-medium text-[var(--foreground)]">Creator</span>, <span className="font-medium text-[var(--foreground)]">Author</span>, <span className="font-medium text-[var(--foreground)]">Director</span>, or <span className="font-medium text-[var(--foreground)]">Artist</span> — optional</li>
+                      <li><span className="font-medium text-[var(--foreground)]">Rating</span> — optional, numeric</li>
+                      <li><span className="font-medium text-[var(--foreground)]">Notes</span> — optional</li>
+                    </ul>
+                    <p className="text-xs">Duplicates are automatically skipped.</p>
+                  </div>
                 </div>
 
                 <button
@@ -649,7 +662,8 @@ export default function LibraryPage() {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
