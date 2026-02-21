@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { RecordButton } from "@/components/RecordButton";
 import { NoteInput } from "@/components/NoteInput";
 
@@ -221,16 +222,16 @@ export default function Home() {
         <NoteInput onSubmit={handleTextSubmit} disabled={isProcessing || isRecording} />
       </div>
 
-      {/* About Modal */}
-      {showAbout && (
+      {/* About Modal — portaled to body to escape layout transform */}
+      {showAbout && createPortal(
         <div
-          className="fixed inset-0 bg-[rgba(54,42,33,0.25)] backdrop-blur-sm flex items-start justify-center z-50 p-6 pt-12 overflow-y-auto sm:items-center sm:pt-6"
+          className="fixed inset-0 flex items-center justify-center z-50 p-6 overflow-y-auto"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAbout(false);
           }}
         >
           <div
-            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)]"
+            className="bg-[var(--card)] rounded-3xl p-8 w-full max-w-lg shadow-[var(--shadow-lift)] border border-[var(--border)] my-auto"
             role="dialog"
             aria-modal="true"
             aria-label="About CommonPlace"
@@ -257,7 +258,8 @@ export default function Home() {
               Close
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
